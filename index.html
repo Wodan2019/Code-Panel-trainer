@@ -1775,7 +1775,9 @@ function connect(a,b){
     if(T.side==='panel'&&T.role!=='gbus'&&n>=1){toast(T.role==='hot'?'One conductor per breaker terminal. Remove the existing wire first.':'One conductor per terminal on the neutral bar. Use an empty screw.');return;}
     if(T.side==='panel'&&T.role==='gbus'&&n>=2){toast('That ground-bar screw already holds two conductors.');return;}
     if(T.side==='dev'&&T.role==='gnd'&&n>=3){toast('That ground splice already has three conductors.');return;}
-    if(T.side==='dev'&&T.role!=='gnd'&&n>=1){toast('One conductor per screw terminal. Use the second screw on that side, or remove the existing wire.');return;}}
+    // GFCI LINE terminals are back-wire clamp terminals: two conductors each. Other screws take one.
+    const isLine=T.side==='dev'&&['LH','LN'].includes(T.key);
+    if(T.side==='dev'&&T.role!=='gnd'&&n>=(isLine?2:1)){toast(isLine?'That LINE terminal already holds two conductors (the clamp maximum).':'One conductor per screw terminal. Use the second screw on that side, or remove the existing wire.');return;}}
   const color=curColor==='auto'?autoColor(a,b):curColor;
   const gv=$('#gauge').value, gauge=gv==='auto'?autoGauge(A,B):+gv;
   const prob=checkWire(a,b,color,gauge);
@@ -1787,6 +1789,8 @@ function connect(a,b){
   const w=mk(pa,pb,color,gauge); wires.push(w); selWire=w.id;
   const dt=TERM[w.b].side==='dev'?TERM[w.b]:TERM[w.a]; selDev=dt.dev.id;
   log('ok',`Wired #${gauge} ${color} — ${TERM[w.a].name} → ${TERM[w.b].name}.`);
+  { const L=[w.a,w.b].map(x=>TERM[x]).find(t=>t.side==='dev'&&['LH','LN'].includes(t.key));
+    if(L&&wires.filter(x=>x.a===L.id||x.b===L.id).length===2) toast('Two conductors on a LINE terminal: anything fed from LINE is NOT GFCI-protected. Feed from LOAD to protect downstream devices.'); }
 }
 svg.addEventListener('click',e=>{
   const tg=e.target; let n;
