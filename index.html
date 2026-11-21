@@ -237,6 +237,31 @@ body.quiz .quiz-note{display:block}
 .dg-x{font-family:var(--f-display);font-weight:700;font-size:8px;fill:#c62828}
 .dg-t{font-family:var(--f-display);font-size:5.6px;fill:#222}.dg-t.b{font-weight:700;font-size:6px}
 [data-danger]:hover .dg{stroke:var(--accent);stroke-width:2}
+/* projector mode: full screen, light theme, toolbar on the top edge, side panel in a drawer, bigger text, pointer spotlight */
+#sideTab,#spot{display:none}
+body.proj .toolbar{position:fixed;top:0;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));z-index:19;box-shadow:0 8px 24px rgba(0,0,0,.25);border-radius:0 0 10px 10px;transform:translateY(calc(-100% + 8px));transition:transform .2s}
+body.proj .toolbar:hover,body.proj .toolbar:focus-within{transform:none}
+body.proj .hint{display:none}
+body.proj .wrap{grid-template-rows:minmax(0,1fr);padding-block:12px 4px}
+body.proj .main{grid-template-columns:minmax(0,1fr)}
+body.proj .side{position:fixed;top:14px;bottom:14px;right:14px;width:min(420px,calc(100vw - 28px));z-index:18;background:var(--bg);padding:10px;border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.35);transform:translateX(calc(100% + 40px));transition:transform .2s;font-size:16px}
+body.proj.side-open .side{transform:none}
+body.proj #sideTab{display:block;position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:19;writing-mode:vertical-rl;padding:16px 8px;border-radius:10px 0 0 10px;background:var(--accent);color:var(--accent-ink);border:none;font-weight:600;font-size:15px}
+body.proj.side-open #sideTab{right:calc(min(420px,100vw - 28px) + 14px)}
+body.proj #spot{display:block;position:fixed;left:0;top:0;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;border:4px solid rgba(255,190,0,.95);background:rgba(255,220,0,.16);pointer-events:none;z-index:45}
+body.proj .fgrid button{font-size:14px;padding:8px 4px}
+body.proj .faults h2,body.proj .box h2{font-size:15px}
+body.proj #modal .mbox{max-width:780px}
+body.proj #mMsg{font-size:19px;line-height:1.5}
+body.proj #modal h3{font-size:32px}
+body.proj #toast{font-size:19px;padding:14px 22px}
+body.proj .tlab{font-size:12.5px}
+body.proj .dname{font-size:19px}
+body.proj .res{font-size:16px}
+body.proj .pill text{font-size:13.5px}
+body.proj .bk-txt{font-size:13.5px}
+body.proj .tray{font-size:11px}
+@media (hover:none){body.proj #spot{display:none}}
 .jprint{font-family:var(--f-mono);font-size:7.2px;font-weight:500;fill:#23272c;letter-spacing:.04em;pointer-events:none}
 .jlab{font-family:var(--f-mono);font-size:9.5px;font-weight:500;fill:var(--muted);pointer-events:none}
 .bondj{cursor:pointer}
@@ -452,6 +477,7 @@ body.quiz .quiz-note{display:block}
       <button id="btnDmm" aria-pressed="false">Multimeter</button>
       <button id="btnClamp" aria-pressed="false">Clamp meter</button>
       <button id="btnLadder" aria-pressed="false">Ladder diagram</button>
+      <button id="btnProj" aria-pressed="false" title="Full-screen classroom view (P)">Projector</button>
     </div>
     <span class="sep"></span>
     <div class="grp" id="colorGrp" aria-label="Wire colour">
@@ -532,6 +558,8 @@ body.quiz .quiz-note{display:block}
   <p class="meta">Rungs appear as devices are wired. Orange = energized. The service conductors, meter and main are in series with the whole house; each branch circuit is a parallel rung across the bus.</p>
 </div>
 <div id="toast" role="status"></div>
+<button id="sideTab" type="button" aria-label="Show faults and inspector">Faults &amp; inspector</button>
+<div id="spot" aria-hidden="true"></div>
 <div id="flash" aria-hidden="true"></div>
 <div id="modal" hidden role="alertdialog" aria-modal="true" aria-labelledby="mTitle">
   <div class="mbox" id="mBox">
@@ -2581,6 +2609,26 @@ $('#devMenu').addEventListener('click',e=>{
   const b=e.target.closest('[data-dvall]'); if(!b) return; const on=b.dataset.dvall==='1'; setDeviceVisible(DEVICES.filter(d=>d.vis!==on).map(d=>d.id),on);});
 document.addEventListener('click',e=>{const dp=$('#devPick'); if(dp.open&&!dp.contains(e.target)) dp.open=false;});
 renderDevMenu();
+// ---------- projector mode ----------
+let projOn=false, prevTheme=null;
+function setProjector(on){
+  projOn=on; document.body.classList.toggle('proj',on); document.body.classList.remove('side-open');
+  const b=$('#btnProj'); b.setAttribute('aria-pressed',on); b.textContent=on?'Exit projector':'Projector';
+  const r=document.documentElement;
+  if(on){ prevTheme=r.getAttribute('data-theme'); r.setAttribute('data-theme','light');   // projectors wash out dark themes
+    try{ if(!document.fullscreenElement&&r.requestFullscreen) r.requestFullscreen().catch(()=>{}); }catch(e){}
+    toast('Projector mode: top edge = toolbar · right tab = faults & inspector · press P to exit');
+    log('ok','Projector mode on.');
+  } else {
+    if(prevTheme==null) r.removeAttribute('data-theme'); else r.setAttribute('data-theme',prevTheme);
+    try{ if(document.fullscreenElement&&document.exitFullscreen) document.exitFullscreen().catch(()=>{}); }catch(e){}
+    log('ok','Projector mode off.');
+  }
+}
+$('#btnProj').onclick=()=>setProjector(!projOn);
+$('#sideTab').onclick=()=>document.body.classList.toggle('side-open');
+document.addEventListener('keydown',e=>{ if((e.key==='p'||e.key==='P')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) setProjector(!projOn); });
+document.addEventListener('pointermove',e=>{ if(projOn) $('#spot').style.transform=`translate(${e.clientX}px,${e.clientY}px)`; });
 drawStatic(); renderLog(); update();
 })();
 </script>
