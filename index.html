@@ -238,7 +238,9 @@ body.quiz .quiz-note{display:block}
 .dg-t{font-family:var(--f-display);font-size:5.6px;fill:#222}.dg-t.b{font-weight:700;font-size:6px}
 [data-danger]:hover .dg{stroke:var(--accent);stroke-width:2}
 /* projector mode: full screen, light theme, toolbar on the top edge, side panel in a drawer, bigger text, pointer spotlight */
-#sideTab,#spot{display:none}
+#sideTab,#spot,#sideClose{display:none}
+body.proj #sideClose{display:block;align-self:flex-end;flex:none;font-size:26px;line-height:1;padding:4px 14px;margin-bottom:-2px;border-radius:8px;font-weight:600}
+body.proj #sideClose:hover{background:var(--bad);border-color:var(--bad);color:#fff}
 body.proj .toolbar{position:fixed;top:0;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));z-index:19;box-shadow:0 8px 24px rgba(0,0,0,.25);border-radius:0 0 10px 10px;transform:translateY(calc(-100% + 8px));transition:transform .2s}
 body.proj .toolbar:hover,body.proj .toolbar:focus-within{transform:none}
 body.proj .hint{display:none}
@@ -538,6 +540,7 @@ body.proj .tray{font-size:11px}
     </svg>
     </div>
     <aside class="side">
+      <button id="sideClose" type="button" aria-label="Hide faults and inspector" title="Hide (Esc)">×</button>
       <section class="box faults" id="faults" aria-label="Faults"></section>
       <div class="tabs" role="tablist">
         <button role="tab" data-tab="insp" aria-selected="true">Inspector</button>
@@ -2627,6 +2630,8 @@ function setProjector(on){
 }
 $('#btnProj').onclick=()=>setProjector(!projOn);
 $('#sideTab').onclick=()=>document.body.classList.toggle('side-open');
+$('#sideClose').onclick=()=>document.body.classList.remove('side-open');
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&projOn&&document.body.classList.contains('side-open')&&$('#modal').hidden) document.body.classList.remove('side-open'); });
 document.addEventListener('keydown',e=>{ if((e.key==='p'||e.key==='P')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) setProjector(!projOn); });
 document.addEventListener('pointermove',e=>{ if(projOn) $('#spot').style.transform=`translate(${e.clientX}px,${e.clientY}px)`; });
 drawStatic(); renderLog(); update();
